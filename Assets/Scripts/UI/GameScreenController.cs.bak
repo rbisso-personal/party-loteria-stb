@@ -1,0 +1,187 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using PartyLoteria.Data;
+using PartyLoteria.Game;
+
+namespace PartyLoteria.UI
+{
+    public class GameScreenController : MonoBehaviour
+    {
+        private TextMeshProUGUI cardNameText;
+        private TextMeshProUGUI cardVerseText;
+        private TextMeshProUGUI cardNumberText;
+        private TextMeshProUGUI progressText;
+        private Slider progressSlider;
+        private Button pauseButton;
+        private Button resumeButton;
+        private TextMeshProUGUI pausedText;
+
+        private bool isSetup = false;
+
+        public void Setup(
+            TextMeshProUGUI cardName,
+            TextMeshProUGUI cardVerse,
+            TextMeshProUGUI cardNumber,
+            TextMeshProUGUI progress,
+            Slider progressBar,
+            Button pause,
+            Button resume,
+            TextMeshProUGUI paused)
+        {
+            cardNameText = cardName;
+            cardVerseText = cardVerse;
+            cardNumberText = cardNumber;
+            progressText = progress;
+            progressSlider = progressBar;
+            pauseButton = pause;
+            resumeButton = resume;
+            pausedText = paused;
+            isSetup = true;
+
+            SetupControls();
+        }
+
+        private void OnEnable()
+        {
+            SubscribeToEvents();
+            if (isSetup) UpdateUI();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeFromEvents();
+        }
+
+        private void SubscribeToEvents()
+        {
+            var game = GameManager.Instance;
+            if (game != null)
+            {
+                game.OnCardDrawn += HandleCardDrawn;
+                game.OnPhaseChanged += HandlePhaseChanged;
+            }
+        }
+
+        private void UnsubscribeFromEvents()
+        {
+            var game = GameManager.Instance;
+            if (game != null)
+            {
+                game.OnCardDrawn -= HandleCardDrawn;
+                game.OnPhaseChanged -= HandlePhaseChanged;
+            }
+        }
+
+        private void SetupControls()
+        {
+            if (pauseButton != null)
+            {
+                pauseButton.onClick.RemoveAllListeners();
+                pauseButton.onClick.AddListener(OnPauseClicked);
+            }
+
+            if (resumeButton != null)
+            {
+                resumeButton.onClick.RemoveAllListeners();
+                resumeButton.onClick.AddListener(OnResumeClicked);
+            }
+        }
+
+        private void HandleCardDrawn(Card card, int cardNumber, int totalCards)
+        {
+            UpdateCardDisplay(card);
+            UpdateProgress(cardNumber, totalCards);
+        }
+
+        private void HandlePhaseChanged(GamePhase phase)
+        {
+            UpdatePauseControls(phase);
+        }
+
+        private void UpdateUI()
+        {
+            var game = GameManager.Instance;
+            if (game == null) return;
+
+            if (game.CurrentCard != null)
+            {
+                UpdateCardDisplay(game.CurrentCard);
+            }
+            else
+            {
+                // Clear display when no card
+                if (cardNameText != null) cardNameText.text = "";
+                if (cardVerseText != null) cardVerseText.text = "Waiting for first card...";
+                if (cardNumberText != null) cardNumberText.text = "";
+            }
+
+            UpdateProgress(game.CardsDrawn, game.TotalCards);
+            UpdatePauseControls(game.CurrentPhase);
+        }
+
+        private void UpdateCardDisplay(Card card)
+        {
+            var game = GameManager.Instance;
+            string lang = game?.Language ?? "es";
+
+            if (cardNameText != null)
+            {
+                cardNameText.text = card.GetName(lang);
+            }
+
+            if (cardVerseText != null)
+            {
+                cardVerseText.text = card.GetVerse(lang);
+            }
+
+            if (cardNumberText != null)
+            {
+                cardNumberText.text = $"#{card.id}";
+            }
+        }
+
+        private void UpdateProgress(int current, int total)
+        {
+            if (progressSlider != null)
+            {
+                progressSlider.value = total > 0 ? (float)current / total : 0;
+            }
+
+            if (progressText != null)
+            {
+                progressText.text = total > 0 ? $"{current} / {total}" : "0 / 54";
+            }
+        }
+
+        private void UpdatePauseControls(GamePhase phase)
+        {
+            bool isPaused = phase == GamePhase.Paused;
+
+            if (pauseButton != null)
+            {
+                pauseButton.gameObject.SetActive(!isPaused);
+            }
+
+            if (resumeButton != null)
+            {
+                resumeButton.gameObject.SetActive(isPaused);
+            }
+
+            if (pausedText != null)
+            {
+                pausedText.gameObject.SetActive(isPaused);
+            }
+        }
+
+        private void OnPauseClicked()
+        {
+            GameManager.Instance?.PauseGame();
+        }
+
+        private void OnResumeClicked()
+        {
+            GameManager.Instance?.ResumeGame();
+        }
+    }
+}
