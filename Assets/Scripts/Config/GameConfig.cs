@@ -15,11 +15,11 @@ namespace PartyLoteria.Config
 
         [Header("Player Client Settings")]
         [Tooltip("Base URL for the player client (where mobile players connect).\nFor local testing with real devices, use your computer's IP address.\nExample: http://192.168.1.100:5173")]
-        [SerializeField] private string playerClientUrl = "http://localhost:5173";
+        [SerializeField] private string playerClientUrl = "https://party-loteria-client.netlify.app";
 
         [Header("Auto-detect Settings")]
         [Tooltip("Try to auto-detect local IP for player client URL (recommended for testing)")]
-        [SerializeField] private bool useLocalIp = true;
+        [SerializeField] private bool useLocalIp = false;
 
         [SerializeField] private int playerClientPort = 5173;
 
