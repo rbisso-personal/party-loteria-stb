@@ -265,7 +265,7 @@ namespace PartyLoteria.UI
             var joinLabelLE = joinLabel.gameObject.AddComponent<LayoutElement>();
             joinLabelLE.preferredHeight = 50;
 
-            var urlLabel = CreateText(roomInfoPanel.transform, "UrlLabel", "loteria.game", FontSize(fontScaleXLarge), FontStyles.Bold);
+            var urlLabel = CreateText(roomInfoPanel.transform, "UrlLabel", "party-loteria-client.netlify.app", FontSize(fontScaleXLarge), FontStyles.Bold);
             urlLabel.color = primaryColor;
             urlLabel.alignment = TextAlignmentOptions.Left;
             var urlLabelLE = urlLabel.gameObject.AddComponent<LayoutElement>();
