@@ -23,8 +23,8 @@ namespace PartyLoteria.UI
         private Texture2D qrCodeTexture;
 
         // Player client URL - set this in the inspector or via code
-        // For local testing with real devices, use your computer's IP (e.g., "http://192.168.1.100:5173")
-        private static string playerUrlBase = "http://localhost:5173";
+        // For local testing, call SetPlayerUrlBase() with your local IP (e.g., "http://192.168.1.100:5173")
+        private static string playerUrlBase = "https://party-loteria-client.netlify.app";
         private static LobbyScreenController activeInstance;
 
         /// <summary>
