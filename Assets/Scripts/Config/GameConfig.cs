@@ -11,7 +11,7 @@ namespace PartyLoteria.Config
     {
         [Header("Network Settings")]
         [Tooltip("URL of the game server (where server.js is running)")]
-        [SerializeField] private string serverUrl = "http://localhost:3001";
+        [SerializeField] private string serverUrl = "https://party-loteria-ircg2u7krq-uc.a.run.app";
 
         [Header("Player Client Settings")]
         [Tooltip("Base URL for the player client (where mobile players connect).\nFor local testing with real devices, use your computer's IP address.\nExample: http://192.168.1.100:5173")]

@@ -71,6 +71,9 @@ namespace PartyLoteria.UI
         private GameObject noWinnerPanel;
         private Button playAgainButton;
 
+        // Server status indicator
+        private ServerStatusIndicator serverStatusIndicator;
+
         private void Awake()
         {
             BuildUI();
@@ -391,6 +394,33 @@ namespace PartyLoteria.UI
             var startButtonText = startGameButton.GetComponentInChildren<TextMeshProUGUI>();
             startButtonText.fontSize = FontSize(fontScaleLarge);
             startGameButton.interactable = false;
+
+            // Server status indicator - floating button in top-right corner (outside mainLayout)
+            var serverStatusBtn = new GameObject("ServerStatusButton");
+            serverStatusBtn.transform.SetParent(screen.transform, false);
+            var statusRect = serverStatusBtn.AddComponent<RectTransform>();
+            // Anchor to top-right corner
+            statusRect.anchorMin = new Vector2(1, 1);
+            statusRect.anchorMax = new Vector2(1, 1);
+            statusRect.pivot = new Vector2(1, 1);
+            statusRect.anchoredPosition = new Vector2(-paddingSmall, -paddingSmall);
+            statusRect.sizeDelta = new Vector2(60, 40);
+
+            var statusBg = serverStatusBtn.AddComponent<Image>();
+            statusBg.color = new Color(0.3f, 0.3f, 0.35f);
+
+            var statusBtnComp = serverStatusBtn.AddComponent<Button>();
+            statusBtnComp.targetGraphic = statusBg;
+
+            var statusIconObj = new GameObject("Icon");
+            statusIconObj.transform.SetParent(serverStatusBtn.transform, false);
+            var statusIcon = statusIconObj.AddComponent<TextMeshProUGUI>();
+            statusIcon.text = "zzZ";
+            statusIcon.fontSize = 18;
+            statusIcon.alignment = TextAlignmentOptions.Center;
+            StretchToParent(statusIconObj);
+
+            serverStatusIndicator = serverStatusBtn.AddComponent<ServerStatusIndicator>();
 
             return screen;
         }

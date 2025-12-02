@@ -84,4 +84,27 @@ namespace PartyLoteria.Data
     {
         public string message;
     }
+
+    [Serializable]
+    public class WinClaimedData
+    {
+        public string playerId;
+        public string playerName;
+    }
+
+    [Serializable]
+    public class WinVerifiedData
+    {
+        public string playerId;
+        public string playerName;
+        public int[] winningPattern;
+    }
+
+    [Serializable]
+    public class WinRejectedData
+    {
+        public string playerId;
+        public string playerName;
+        public string reason;
+    }
 }

@@ -1,11 +1,14 @@
 using System;
 using System.Threading;
 using UnityEngine;
-using SocketIOClient;
-using SocketIOClient.Newtonsoft.Json;
 using Newtonsoft.Json;
 using PartyLoteria.Data;
+
+#if !UNITY_WEBGL || UNITY_EDITOR
+using SocketIOClient;
+using SocketIOClient.Newtonsoft.Json;
 using Cysharp.Threading.Tasks;
+#endif
 
 namespace PartyLoteria.Network
 {
@@ -14,10 +17,14 @@ namespace PartyLoteria.Network
         public static NetworkManager Instance { get; private set; }
 
         [Header("Server Configuration")]
-        [SerializeField] private string serverUrl = "http://localhost:3001";
+        [SerializeField] private string serverUrl = "https://party-loteria-ircg2u7krq-uc.a.run.app";
         [SerializeField] private bool autoConnect = true;
 
+#if !UNITY_WEBGL || UNITY_EDITOR
         private SocketIOUnity socket;
+#else
+        private WebGLSocketBridge webglBridge;
+#endif
 
         // Connection events
         public event Action OnConnected;
@@ -40,7 +47,12 @@ namespace PartyLoteria.Network
         public event Action OnGameReset;
         public event Action<string> OnGameError;
 
+#if !UNITY_WEBGL || UNITY_EDITOR
         public bool IsConnected => socket?.Connected ?? false;
+#else
+        public bool IsConnected => webglBridge?.IsConnected ?? false;
+#endif
+
         public string CurrentRoomCode { get; private set; }
 
         private void Awake()
@@ -53,6 +65,12 @@ namespace PartyLoteria.Network
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // Create WebGL bridge on the same GameObject
+            webglBridge = gameObject.AddComponent<WebGLSocketBridge>();
+            SetupWebGLEventHandlers();
+#endif
         }
 
         private void Start()
@@ -69,6 +87,16 @@ namespace PartyLoteria.Network
         }
 
         public void Connect()
+        {
+#if !UNITY_WEBGL || UNITY_EDITOR
+            ConnectDesktop();
+#else
+            ConnectWebGL();
+#endif
+        }
+
+#if !UNITY_WEBGL || UNITY_EDITOR
+        private void ConnectDesktop()
         {
             if (socket != null && socket.Connected)
             {
@@ -91,21 +119,11 @@ namespace PartyLoteria.Network
             // Use Newtonsoft.Json for serialization
             socket.JsonSerializer = new NewtonsoftJsonSerializer();
 
-            SetupEventHandlers();
+            SetupDesktopEventHandlers();
             socket.Connect();
         }
 
-        public void Disconnect()
-        {
-            if (socket != null)
-            {
-                socket.Disconnect();
-                socket.Dispose();
-                socket = null;
-            }
-        }
-
-        private void SetupEventHandlers()
+        private void SetupDesktopEventHandlers()
         {
             // Connection events
             socket.OnConnected += (sender, e) =>
@@ -218,6 +236,59 @@ namespace PartyLoteria.Network
                 UnityMainThread.Execute(() => OnGameError?.Invoke(data.message));
             });
         }
+#endif
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        private void ConnectWebGL()
+        {
+            if (webglBridge != null && webglBridge.IsConnected)
+            {
+                Debug.Log("[Network] Already connected");
+                return;
+            }
+
+            Debug.Log($"[Network] WebGL connecting to {serverUrl}...");
+            webglBridge.Connect(serverUrl);
+        }
+
+        private void SetupWebGLEventHandlers()
+        {
+            webglBridge.OnConnected += () => OnConnected?.Invoke();
+            webglBridge.OnDisconnected += () => OnDisconnected?.Invoke();
+            webglBridge.OnConnectionError += (error) => OnConnectionError?.Invoke(error);
+
+            webglBridge.OnRoomCreated += (roomCode) =>
+            {
+                CurrentRoomCode = roomCode;
+                OnRoomCreated?.Invoke(roomCode);
+            };
+            webglBridge.OnPlayerJoined += (player) => OnPlayerJoined?.Invoke(player);
+            webglBridge.OnPlayerLeft += (playerId, playerName) => OnPlayerLeft?.Invoke(playerId, playerName);
+            webglBridge.OnLobbyUpdate += (players) => OnLobbyUpdate?.Invoke(players);
+
+            webglBridge.OnGameStarted += (data) => OnGameStarted?.Invoke(data);
+            webglBridge.OnCardDrawn += (card, cardNum, total) => OnCardDrawn?.Invoke(card, cardNum, total);
+            webglBridge.OnGamePaused += () => OnGamePaused?.Invoke();
+            webglBridge.OnGameResumed += () => OnGameResumed?.Invoke();
+            webglBridge.OnGameOver += (data) => OnGameOver?.Invoke(data);
+            webglBridge.OnGameReset += () => OnGameReset?.Invoke();
+            webglBridge.OnGameError += (msg) => OnGameError?.Invoke(msg);
+        }
+#endif
+
+        public void Disconnect()
+        {
+#if !UNITY_WEBGL || UNITY_EDITOR
+            if (socket != null)
+            {
+                socket.Disconnect();
+                socket.Dispose();
+                socket = null;
+            }
+#else
+            webglBridge?.Disconnect();
+#endif
+        }
 
         // STB Actions
         public void CreateRoom()
@@ -229,7 +300,11 @@ namespace PartyLoteria.Network
             }
 
             Debug.Log("[Network] Creating room...");
+#if !UNITY_WEBGL || UNITY_EDITOR
             socket.Emit("create-room");
+#else
+            webglBridge.Emit("create-room");
+#endif
         }
 
         public void StartGame(string winPattern = "line", int drawSpeed = 8)
@@ -241,7 +316,11 @@ namespace PartyLoteria.Network
             }
 
             Debug.Log($"[Network] Starting game (pattern: {winPattern}, speed: {drawSpeed}s)");
+#if !UNITY_WEBGL || UNITY_EDITOR
             socket.Emit("start-game", new { winPattern, drawSpeed });
+#else
+            webglBridge.Emit("start-game", new { winPattern, drawSpeed });
+#endif
         }
 
         public void DrawCard()
@@ -252,31 +331,51 @@ namespace PartyLoteria.Network
                 return;
             }
 
+#if !UNITY_WEBGL || UNITY_EDITOR
             socket.Emit("draw-card");
+#else
+            webglBridge.Emit("draw-card");
+#endif
         }
 
         public void PauseGame()
         {
             if (!IsConnected) return;
+#if !UNITY_WEBGL || UNITY_EDITOR
             socket.Emit("pause-game");
+#else
+            webglBridge.Emit("pause-game");
+#endif
         }
 
         public void ResumeGame()
         {
             if (!IsConnected) return;
+#if !UNITY_WEBGL || UNITY_EDITOR
             socket.Emit("resume-game");
+#else
+            webglBridge.Emit("resume-game");
+#endif
         }
 
         public void ResetGame()
         {
             if (!IsConnected) return;
+#if !UNITY_WEBGL || UNITY_EDITOR
             socket.Emit("reset-game");
+#else
+            webglBridge.Emit("reset-game");
+#endif
         }
 
         public void CloseRoom()
         {
             if (!IsConnected) return;
+#if !UNITY_WEBGL || UNITY_EDITOR
             socket.Emit("disconnect-set-top-box");
+#else
+            webglBridge.Emit("disconnect-set-top-box");
+#endif
             CurrentRoomCode = null;
         }
 
@@ -290,7 +389,11 @@ namespace PartyLoteria.Network
             }
 
             Debug.Log($"[Network] Debug: Forcing win for player {playerId}");
+#if !UNITY_WEBGL || UNITY_EDITOR
             socket.Emit("debug-force-win", new { playerId });
+#else
+            webglBridge.Emit("debug-force-win", new { playerId });
+#endif
         }
 
         public void DebugTriggerLoteria(string playerId)
@@ -302,7 +405,11 @@ namespace PartyLoteria.Network
             }
 
             Debug.Log($"[Network] Debug: Triggering loteria for player {playerId}");
+#if !UNITY_WEBGL || UNITY_EDITOR
             socket.Emit("debug-trigger-loteria", new { playerId });
+#else
+            webglBridge.Emit("debug-trigger-loteria", new { playerId });
+#endif
         }
     }
 

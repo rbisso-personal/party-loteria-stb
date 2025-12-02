@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Project Sirena | {{{ PRODUCT_NAME }}}</title>
+    <!-- Socket.IO client library - REQUIRED for WebGL networking -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  </head>
+  <body style="text-align: center; padding: 0; border: 0; margin: 0; background: #231F20;">
+    <canvas id="unity-canvas" width={{{ WIDTH }}} height={{{ HEIGHT }}} tabindex="-1" style="width: {{{ WIDTH }}}px; height: {{{ HEIGHT }}}px; background: #231F20"></canvas>
+    <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+    <script>
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+
+        var canvas = document.querySelector("#unity-canvas");
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.position = "fixed";
+
+        document.body.style.textAlign = "left";
+      }
+
+      createUnityInstance(document.querySelector("#unity-canvas"), {
+        arguments: [],
+        dataUrl: "Build/{{{ DATA_FILENAME }}}",
+        frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_THREADS
+        workerUrl: "Build/{{{ WORKER_FILENAME }}}",
+#endif
+#if USE_WASM
+        codeUrl: "Build/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+        symbolsUrl: "Build/{{{ SYMBOLS_FILENAME }}}",
+#endif
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+      }).then((unityInstance) => {
+        window.unityInstance = unityInstance;
+
+        var canvas = document.querySelector("#unity-canvas");
+        var targetAspectRatio = {{{ WIDTH }}} / {{{ HEIGHT }}};
+
+        // Always resize canvas to fill available space while maintaining aspect ratio
+        // This works with itch.io's fullscreen which just resizes the iframe
+        function resizeCanvas() {
+          var windowWidth = window.innerWidth;
+          var windowHeight = window.innerHeight;
+
+          var newWidth, newHeight;
+          if (windowWidth / windowHeight > targetAspectRatio) {
+            // Window is wider than game - fit to height, pillarbox
+            newHeight = windowHeight;
+            newWidth = newHeight * targetAspectRatio;
+          } else {
+            // Window is taller than game - fit to width, letterbox
+            newWidth = windowWidth;
+            newHeight = newWidth / targetAspectRatio;
+          }
+
+          // Update canvas rendering resolution
+          canvas.width = Math.round(newWidth);
+          canvas.height = Math.round(newHeight);
+
+          // Update CSS for display and center
+          canvas.style.width = Math.round(newWidth) + "px";
+          canvas.style.height = Math.round(newHeight) + "px";
+          canvas.style.position = "absolute";
+          canvas.style.left = Math.round((windowWidth - newWidth) / 2) + "px";
+          canvas.style.top = Math.round((windowHeight - newHeight) / 2) + "px";
+        }
+
+        // Resize on any window size change (handles itch.io fullscreen)
+        window.addEventListener("resize", resizeCanvas);
+
+        // Also listen for fullscreen events (for direct fullscreen API usage)
+        document.addEventListener("fullscreenchange", resizeCanvas);
+        document.addEventListener("webkitfullscreenchange", resizeCanvas);
+
+        // Initial resize to fit current window
+        resizeCanvas();
+      }).catch((message) => {
+        alert(message);
+      });
+    </script>
+  </body>
+</html>
