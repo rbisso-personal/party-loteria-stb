@@ -20,6 +20,12 @@ namespace PartyLoteria.Network
         [SerializeField] private string serverUrl = "https://party-loteria-ircg2u7krq-uc.a.run.app";
         [SerializeField] private bool autoConnect = true;
 
+        [Header("Local Development")]
+        [Tooltip("Use localhost for local testing instead of production server")]
+        [SerializeField] private bool useLocalServer = false;
+        [SerializeField] private int localServerPort = 3001;
+        [SerializeField] private int localPlayerClientPort = 5173;
+
 #if !UNITY_WEBGL || UNITY_EDITOR
         private SocketIOUnity socket;
 #else
@@ -55,6 +61,25 @@ namespace PartyLoteria.Network
 
         public string CurrentRoomCode { get; private set; }
 
+        /// <summary>
+        /// Returns the effective server URL (localhost if useLocalServer is checked)
+        /// </summary>
+        public string EffectiveServerUrl => useLocalServer ? $"http://localhost:{localServerPort}" : serverUrl;
+
+        /// <summary>
+        /// Set the server URL before connecting. Call this from GameConfig.
+        /// </summary>
+        public void SetServerUrl(string url)
+        {
+            if (IsConnected)
+            {
+                Debug.LogWarning("[Network] Cannot change server URL while connected");
+                return;
+            }
+            serverUrl = url;
+            Debug.Log($"[Network] Server URL set to: {serverUrl}");
+        }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -66,6 +91,12 @@ namespace PartyLoteria.Network
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
+            // Show debug indicator if testing locally
+            if (useLocalServer)
+            {
+                CreateLocalServerIndicator();
+            }
+
 #if UNITY_WEBGL && !UNITY_EDITOR
             // Create WebGL bridge on the same GameObject
             webglBridge = gameObject.AddComponent<WebGLSocketBridge>();
@@ -75,6 +106,13 @@ namespace PartyLoteria.Network
 
         private void Start()
         {
+            // Setup local player client URL if testing locally
+            // This runs in Start() to ensure it runs AFTER GameConfig.Awake() which sets production defaults
+            if (useLocalServer)
+            {
+                SetupLocalPlayerClientUrl();
+            }
+
             if (autoConnect)
             {
                 Connect();
@@ -104,9 +142,9 @@ namespace PartyLoteria.Network
                 return;
             }
 
-            Debug.Log($"[Network] Connecting to {serverUrl}...");
+            Debug.Log($"[Network] Connecting to {EffectiveServerUrl}...");
 
-            var uri = new Uri(serverUrl);
+            var uri = new Uri(EffectiveServerUrl);
             socket = new SocketIOUnity(uri, new SocketIOOptions
             {
                 Transport = SocketIOClient.Transport.TransportProtocol.WebSocket,
@@ -183,9 +221,10 @@ namespace PartyLoteria.Network
 
             socket.On("update-lobby", response =>
             {
-                // Server sends raw array, not wrapped object
-                var players = response.GetValue<Player[]>();
-                Debug.Log($"[Network] Lobby update: {players.Length} players");
+                // Server sends { players, hostId } object
+                var data = response.GetValue<LobbyUpdateData>();
+                var players = data?.players ?? new Player[0];
+                Debug.Log($"[Network] Lobby update: {players.Length} players, hostId={data?.hostId}");
                 UnityMainThread.Execute(() => OnLobbyUpdate?.Invoke(players));
             });
 
@@ -247,8 +286,8 @@ namespace PartyLoteria.Network
                 return;
             }
 
-            Debug.Log($"[Network] WebGL connecting to {serverUrl}...");
-            webglBridge.Connect(serverUrl);
+            Debug.Log($"[Network] WebGL connecting to {EffectiveServerUrl}...");
+            webglBridge.Connect(EffectiveServerUrl);
         }
 
         private void SetupWebGLEventHandlers()
@@ -377,6 +416,116 @@ namespace PartyLoteria.Network
             webglBridge.Emit("disconnect-set-top-box");
 #endif
             CurrentRoomCode = null;
+        }
+
+        /// <summary>
+        /// Sets up the player client URL to use local IP when testing locally
+        /// </summary>
+        private void SetupLocalPlayerClientUrl()
+        {
+            string localIp = GetLocalIPAddress();
+            if (!string.IsNullOrEmpty(localIp))
+            {
+                // Set local player client URL
+                string localPlayerUrl = $"http://{localIp}:{localPlayerClientPort}";
+                UI.LobbyScreenController.SetPlayerUrlBase(localPlayerUrl);
+                Debug.Log($"[Network] Player client URL set to: {localPlayerUrl}");
+
+                // Set local server URL for the player client to connect to
+                string localServerUrl = $"http://{localIp}:{localServerPort}";
+                UI.LobbyScreenController.SetServerUrl(localServerUrl);
+                Debug.Log($"[Network] Server URL for player client set to: {localServerUrl}");
+            }
+            else
+            {
+                Debug.LogWarning("[Network] Could not detect local IP, using default player client URL");
+            }
+        }
+
+        /// <summary>
+        /// Gets the local IP address of this machine
+        /// </summary>
+        private string GetLocalIPAddress()
+        {
+            try
+            {
+                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+                foreach (var ip in host.AddressList)
+                {
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    {
+                        string ipStr = ip.ToString();
+                        // Prefer 192.168.x.x addresses (typical home/office networks)
+                        if (ipStr.StartsWith("192.168.") || ipStr.StartsWith("10.") || ipStr.StartsWith("172."))
+                        {
+                            return ipStr;
+                        }
+                    }
+                }
+                // Fallback to first IPv4 address
+                foreach (var ip in host.AddressList)
+                {
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    {
+                        return ip.ToString();
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[Network] Error getting local IP: {ex.Message}");
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Creates a UGUI overlay showing local server indicator
+        /// </summary>
+        private void CreateLocalServerIndicator()
+        {
+            // Create a canvas for the debug overlay
+            var canvasObj = new GameObject("LocalServerIndicator");
+            canvasObj.transform.SetParent(transform);
+            DontDestroyOnLoad(canvasObj);
+
+            var canvas = canvasObj.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 9999; // Always on top
+
+            canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>();
+
+            // Create background panel
+            var panelObj = new GameObject("Panel");
+            panelObj.transform.SetParent(canvasObj.transform, false);
+
+            var panelRect = panelObj.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0, 1);
+            panelRect.anchorMax = new Vector2(0, 1);
+            panelRect.pivot = new Vector2(0, 1);
+            panelRect.anchoredPosition = new Vector2(10, -10);
+            panelRect.sizeDelta = new Vector2(400, 60);
+
+            var panelImage = panelObj.AddComponent<UnityEngine.UI.Image>();
+            panelImage.color = new Color(1f, 0.3f, 0.3f, 0.9f); // Red background
+
+            // Create text
+            var textObj = new GameObject("Text");
+            textObj.transform.SetParent(panelObj.transform, false);
+
+            var textRect = textObj.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(10, 5);
+            textRect.offsetMax = new Vector2(-10, -5);
+
+            var text = textObj.AddComponent<TMPro.TextMeshProUGUI>();
+            text.text = $"TESTING LOCALLY\n{EffectiveServerUrl}";
+            text.fontSize = 18;
+            text.color = Color.white;
+            text.fontStyle = TMPro.FontStyles.Bold;
+            text.alignment = TMPro.TextAlignmentOptions.Left;
+
+            Debug.Log($"[Network] Local server indicator created - connecting to {EffectiveServerUrl}");
         }
 
         // Debug Actions

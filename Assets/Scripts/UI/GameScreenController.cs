@@ -81,16 +81,16 @@ namespace PartyLoteria.UI
 
         private void SetupControls()
         {
+            // NOTE: Pause/Resume controls removed - host controls game from mobile device
+            // Hide the buttons since STB is now display-only
             if (pauseButton != null)
             {
-                pauseButton.onClick.RemoveAllListeners();
-                pauseButton.onClick.AddListener(OnPauseClicked);
+                pauseButton.gameObject.SetActive(false);
             }
 
             if (resumeButton != null)
             {
-                resumeButton.onClick.RemoveAllListeners();
-                resumeButton.onClick.AddListener(OnResumeClicked);
+                resumeButton.gameObject.SetActive(false);
             }
         }
 
@@ -222,30 +222,12 @@ namespace PartyLoteria.UI
         {
             bool isPaused = phase == GamePhase.Paused;
 
-            if (pauseButton != null)
-            {
-                pauseButton.gameObject.SetActive(!isPaused);
-            }
-
-            if (resumeButton != null)
-            {
-                resumeButton.gameObject.SetActive(isPaused);
-            }
-
+            // NOTE: Pause/Resume buttons are hidden (host controls from mobile)
+            // Only show the paused text indicator
             if (pausedText != null)
             {
                 pausedText.gameObject.SetActive(isPaused);
             }
-        }
-
-        private void OnPauseClicked()
-        {
-            GameManager.Instance?.PauseGame();
-        }
-
-        private void OnResumeClicked()
-        {
-            GameManager.Instance?.ResumeGame();
         }
     }
 }

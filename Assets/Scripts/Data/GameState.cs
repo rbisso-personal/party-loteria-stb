@@ -77,6 +77,7 @@ namespace PartyLoteria.Data
     public class LobbyUpdateData
     {
         public Player[] players;
+        public string hostId;
     }
 
     [Serializable]

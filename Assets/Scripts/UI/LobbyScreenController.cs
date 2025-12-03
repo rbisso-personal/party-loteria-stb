@@ -25,6 +25,8 @@ namespace PartyLoteria.UI
         // Player client URL - set this in the inspector or via code
         // For local testing, call SetPlayerUrlBase() with your local IP (e.g., "http://192.168.1.100:5173")
         private static string playerUrlBase = "https://party-loteria-client.netlify.app";
+        // Server URL for the player client to connect to (null = use client's default)
+        private static string serverUrlOverride = null;
         private static LobbyScreenController activeInstance;
 
         /// <summary>
@@ -33,8 +35,29 @@ namespace PartyLoteria.UI
         /// </summary>
         public static void SetPlayerUrlBase(string url)
         {
+            if (string.IsNullOrEmpty(url))
+            {
+                Debug.LogWarning("[Lobby] SetPlayerUrlBase called with null/empty URL, ignoring");
+                return;
+            }
             playerUrlBase = url.TrimEnd('/');
             Debug.Log($"[Lobby] Player URL base set to: {playerUrlBase}");
+
+            // Refresh QR code if lobby is currently active
+            if (activeInstance != null && activeInstance.gameObject.activeInHierarchy)
+            {
+                activeInstance.RefreshQRCode();
+            }
+        }
+
+        /// <summary>
+        /// Set the server URL that the player client should connect to.
+        /// This is passed as a query parameter in the QR code URL.
+        /// </summary>
+        public static void SetServerUrl(string url)
+        {
+            serverUrlOverride = url?.TrimEnd('/');
+            Debug.Log($"[Lobby] Server URL override set to: {serverUrlOverride}");
 
             // Refresh QR code if lobby is currently active
             if (activeInstance != null && activeInstance.gameObject.activeInHierarchy)
@@ -119,27 +142,21 @@ namespace PartyLoteria.UI
 
         private void SetupControls()
         {
-            Debug.Log($"[LobbyScreen] SetupControls called. startGameButton={(startGameButton != null ? startGameButton.name : "NULL")}");
+            // NOTE: Start button and draw speed controls removed - host controls game from mobile device
+            // Hide these controls since STB is now display-only
             if (startGameButton != null)
             {
-                startGameButton.onClick.RemoveAllListeners();
-                startGameButton.onClick.AddListener(OnStartGameClicked);
-                Debug.Log("[LobbyScreen] Click listener added to start button");
-            }
-            else
-            {
-                Debug.LogError("[LobbyScreen] startGameButton is NULL - button clicks won't work!");
+                startGameButton.gameObject.SetActive(false);
             }
 
             if (drawSpeedSlider != null)
             {
-                drawSpeedSlider.onValueChanged.RemoveAllListeners();
-                drawSpeedSlider.minValue = 4;
-                drawSpeedSlider.maxValue = 12;
-                drawSpeedSlider.wholeNumbers = true;
-                drawSpeedSlider.value = 8;
-                drawSpeedSlider.onValueChanged.AddListener(OnDrawSpeedChanged);
-                UpdateDrawSpeedText(8);
+                drawSpeedSlider.gameObject.SetActive(false);
+            }
+
+            if (drawSpeedValueText != null)
+            {
+                drawSpeedValueText.gameObject.SetActive(false);
             }
         }
 
@@ -195,8 +212,12 @@ namespace PartyLoteria.UI
                 Destroy(qrCodeTexture);
             }
 
-            // Generate QR code with room URL
+            // Generate QR code with room URL (and optional server override)
             string roomUrl = $"{playerUrlBase}?room={roomCode}";
+            if (!string.IsNullOrEmpty(serverUrlOverride))
+            {
+                roomUrl += $"&server={UnityEngine.Networking.UnityWebRequest.EscapeURL(serverUrlOverride)}";
+            }
             qrCodeTexture = QRCodeGenerator.Generate(roomUrl, 8);
             qrCodeImage.texture = qrCodeTexture;
 
@@ -240,12 +261,6 @@ namespace PartyLoteria.UI
             {
                 playerCountText.text = $"{count} Player{(count != 1 ? "s" : "")}";
             }
-
-            // Enable/disable start button
-            if (startGameButton != null)
-            {
-                startGameButton.interactable = count >= 1;
-            }
         }
 
         private GameObject CreatePlayerEntry(string playerName)
@@ -275,31 +290,7 @@ namespace PartyLoteria.UI
             return entry;
         }
 
-        private void OnStartGameClicked()
-        {
-            Debug.Log("[LobbyScreen] Start Game button clicked!");
-            if (GameManager.Instance == null)
-            {
-                Debug.LogError("[LobbyScreen] GameManager.Instance is NULL!");
-                return;
-            }
-            Debug.Log("[LobbyScreen] Calling GameManager.StartGame()...");
-            GameManager.Instance.StartGame();
-        }
-
-        private void OnDrawSpeedChanged(float value)
-        {
-            int speed = Mathf.RoundToInt(value);
-            GameManager.Instance?.SetDrawSpeed(speed);
-            UpdateDrawSpeedText(speed);
-        }
-
-        private void UpdateDrawSpeedText(int speed)
-        {
-            if (drawSpeedValueText != null)
-            {
-                drawSpeedValueText.text = $"{speed}s";
-            }
-        }
+        // NOTE: OnStartGameClicked and OnDrawSpeedChanged removed
+        // Host now controls these from the mobile client
     }
 }

@@ -77,8 +77,13 @@ namespace PartyLoteria.UI
 
         private void HandleConnected()
         {
-            Debug.Log("[UIManager] Connected - creating room");
-            GameManager.Instance?.CreateRoom();
+            Debug.Log($"[UIManager] Connected - creating room. GameManager.Instance={GameManager.Instance != null}");
+            if (GameManager.Instance == null)
+            {
+                Debug.LogError("[UIManager] GameManager.Instance is null!");
+                return;
+            }
+            GameManager.Instance.CreateRoom();
         }
 
         private void HandleDisconnected()

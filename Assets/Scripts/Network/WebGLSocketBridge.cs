@@ -184,8 +184,10 @@ namespace PartyLoteria.Network
         {
             try
             {
-                var players = JsonConvert.DeserializeObject<Player[]>(jsonData);
-                Debug.Log($"[WebGLSocket] Lobby update: {players.Length} players");
+                // Server sends { players, hostId } object
+                var data = JsonConvert.DeserializeObject<LobbyUpdateData>(jsonData);
+                var players = data?.players ?? new Player[0];
+                Debug.Log($"[WebGLSocket] Lobby update: {players.Length} players, hostId={data?.hostId}");
                 OnLobbyUpdate?.Invoke(players);
             }
             catch (Exception ex)

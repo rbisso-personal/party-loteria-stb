@@ -98,14 +98,9 @@ namespace PartyLoteria.UI
 
         private void SetupUIManager()
         {
-            gameObject.AddComponent<GameConfig>();
-
-            var networkObj = new GameObject("NetworkManager");
-            networkObj.transform.SetParent(transform);
-            networkObj.AddComponent<Network.NetworkManager>();
-
+            // GameConfig and NetworkManager are already on the Game object in the scene
+            // GameManager is created dynamically as a root object (DontDestroyOnLoad requires root)
             var gameManagerObj = new GameObject("GameManager");
-            gameManagerObj.transform.SetParent(transform);
             gameManagerObj.AddComponent<Game.GameManager>();
 
             var uiManager = gameObject.AddComponent<UIManager>();

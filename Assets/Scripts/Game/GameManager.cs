@@ -52,12 +52,21 @@ namespace PartyLoteria.Game
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            // Try to subscribe in Awake - if NetworkManager isn't ready yet, we'll retry in Start
+            SubscribeToNetworkEvents();
         }
 
         private void Start()
         {
-            SubscribeToNetworkEvents();
+            // Retry subscription in case NetworkManager wasn't ready in Awake
+            if (NetworkManager.Instance != null && !isSubscribed)
+            {
+                SubscribeToNetworkEvents();
+            }
         }
+
+        private bool isSubscribed = false;
 
         private void OnDestroy()
         {
@@ -93,6 +102,9 @@ namespace PartyLoteria.Game
             network.OnGameOver += HandleGameOver;
             network.OnGameReset += HandleGameReset;
             network.OnGameError += HandleGameError;
+
+            isSubscribed = true;
+            Debug.Log("[GameManager] Subscribed to network events");
         }
 
         private void UnsubscribeFromNetworkEvents()
@@ -116,7 +128,13 @@ namespace PartyLoteria.Game
         // Public API
         public void CreateRoom()
         {
-            NetworkManager.Instance?.CreateRoom();
+            Debug.Log($"[GameManager] CreateRoom called. NetworkManager.Instance={NetworkManager.Instance != null}");
+            if (NetworkManager.Instance == null)
+            {
+                Debug.LogError("[GameManager] NetworkManager.Instance is null!");
+                return;
+            }
+            NetworkManager.Instance.CreateRoom();
         }
 
         public void StartGame()
