@@ -234,8 +234,14 @@ namespace PartyLoteria.Game
             TotalCards = data.totalCards;
             CardsDrawn = 0;
             CurrentCard = null;
-            isDrawing = true;
-            drawTimer = drawSpeed;
+
+            // Use drawSpeed from server (0 = manual draw)
+            drawSpeed = data.drawSpeed;
+            autoDrawCards = drawSpeed > 0;
+            isDrawing = autoDrawCards;
+            drawTimer = autoDrawCards ? drawSpeed : 0;
+
+            Debug.Log($"[GameManager] Game started - drawSpeed={drawSpeed}, autoDrawCards={autoDrawCards}");
 
             OnPhaseChanged?.Invoke(CurrentPhase);
         }
@@ -259,8 +265,12 @@ namespace PartyLoteria.Game
         private void HandleGameResumed()
         {
             CurrentPhase = GamePhase.Playing;
-            isDrawing = true;
-            drawTimer = drawSpeed;
+            // Only auto-draw if not in manual mode
+            isDrawing = autoDrawCards;
+            if (autoDrawCards)
+            {
+                drawTimer = drawSpeed;
+            }
             OnPhaseChanged?.Invoke(CurrentPhase);
         }
 
