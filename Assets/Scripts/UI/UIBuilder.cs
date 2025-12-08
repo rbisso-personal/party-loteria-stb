@@ -65,6 +65,7 @@ namespace PartyLoteria.UI
         private Button pauseButton;
         private Button resumeButton;
         private TextMeshProUGUI pausedText;
+        private TextMeshProUGUI rulesText;
 
         private TextMeshProUGUI winnerNameText;
         private TextMeshProUGUI winnerMessageText;
@@ -488,6 +489,17 @@ namespace PartyLoteria.UI
             pausedLE.flexibleWidth = 1;
             pausedText.gameObject.SetActive(false);
 
+            // Rules bar - shows win patterns and draw speed
+            var rulesBar = CreateLayoutElement(mainLayout.transform, "RulesBar", preferredHeight: 40);
+            rulesBar.GetComponent<LayoutElement>().flexibleHeight = 0;
+            var rulesBarBg = rulesBar.AddComponent<Image>();
+            rulesBarBg.color = new Color(secondaryColor.r, secondaryColor.g, secondaryColor.b, 0.5f);
+
+            rulesText = CreateText(rulesBar.transform, "RulesText", "", FontSize(fontScaleSmall));
+            rulesText.color = new Color(0.7f, 0.7f, 0.7f);
+            rulesText.alignment = TextAlignmentOptions.Center;
+            StretchToParent(rulesText.gameObject, paddingSmall);
+
             // Card display area (main content) - expands to fill available space
             var cardPanel = CreateLayoutElement(mainLayout.transform, "CardPanel", flexibleHeight: 1);
             var cardPanelBg = cardPanel.AddComponent<Image>();
@@ -818,7 +830,7 @@ namespace PartyLoteria.UI
 
         private void SetupGameController(GameScreenController controller)
         {
-            controller.Setup(cardImage, cardImageContainer, cardNameText, cardVerseText, cardNumberText, progressText, progressSlider, pauseButton, resumeButton, pausedText);
+            controller.Setup(cardImage, cardImageContainer, cardNameText, cardVerseText, cardNumberText, progressText, progressSlider, pauseButton, resumeButton, pausedText, rulesText);
         }
 
         private void SetupResultsController(ResultsScreenController controller)

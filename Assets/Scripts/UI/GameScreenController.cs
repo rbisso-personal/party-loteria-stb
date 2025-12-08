@@ -18,8 +18,19 @@ namespace PartyLoteria.UI
         private Button pauseButton;
         private Button resumeButton;
         private TextMeshProUGUI pausedText;
+        private TextMeshProUGUI rulesText;
 
         private bool isSetup = false;
+
+        // Pattern display names
+        private static readonly System.Collections.Generic.Dictionary<string, string> PatternNames = new()
+        {
+            { "line", "Line" },
+            { "corners", "4 Corners" },
+            { "center", "Center" },
+            { "x", "X Pattern" },
+            { "full", "Full Board" }
+        };
 
         public void Setup(
             Image cardImg,
@@ -31,7 +42,8 @@ namespace PartyLoteria.UI
             Slider progressBar,
             Button pause,
             Button resume,
-            TextMeshProUGUI paused)
+            TextMeshProUGUI paused,
+            TextMeshProUGUI rules)
         {
             cardImage = cardImg;
             cardImageContainer = cardImgContainer;
@@ -43,6 +55,7 @@ namespace PartyLoteria.UI
             pauseButton = pause;
             resumeButton = resume;
             pausedText = paused;
+            rulesText = rules;
             isSetup = true;
 
             SetupControls();
@@ -103,6 +116,10 @@ namespace PartyLoteria.UI
         private void HandlePhaseChanged(GamePhase phase)
         {
             UpdatePauseControls(phase);
+            if (phase == GamePhase.Playing)
+            {
+                UpdateRulesDisplay();
+            }
         }
 
         private void UpdateUI()
@@ -125,6 +142,7 @@ namespace PartyLoteria.UI
 
             UpdateProgress(game.CardsDrawn, game.TotalCards);
             UpdatePauseControls(game.CurrentPhase);
+            UpdateRulesDisplay();
         }
 
         private void UpdateCardDisplay(Card card)
@@ -228,6 +246,31 @@ namespace PartyLoteria.UI
             {
                 pausedText.gameObject.SetActive(isPaused);
             }
+        }
+
+        private void UpdateRulesDisplay()
+        {
+            if (rulesText == null) return;
+
+            var game = GameManager.Instance;
+            if (game == null) return;
+
+            // Build patterns string
+            var patterns = game.WinPatterns;
+            var patternNames = new System.Collections.Generic.List<string>();
+            if (patterns != null)
+            {
+                foreach (var p in patterns)
+                {
+                    patternNames.Add(PatternNames.TryGetValue(p, out var name) ? name : p);
+                }
+            }
+            string patternsStr = patternNames.Count > 0 ? string.Join(" • ", patternNames) : "Line";
+
+            // Build draw speed string
+            string speedStr = game.DrawSpeed > 0 ? $"{game.DrawSpeed}s" : "Manual";
+
+            rulesText.text = $"Win: {patternsStr}  |  Draw: {speedStr}";
         }
     }
 }

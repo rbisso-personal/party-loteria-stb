@@ -51,7 +51,7 @@ namespace PartyLoteria.Data
     [Serializable]
     public class GameStartedData
     {
-        public string winPattern;
+        public string[] winPatterns;
         public int drawSpeed;
         public int totalCards;
         public int playerCount;

@@ -11,7 +11,7 @@ namespace PartyLoteria.Game
         public static GameManager Instance { get; private set; }
 
         [Header("Game Settings")]
-        [SerializeField] private string winPattern = "line";
+        [SerializeField] private string[] winPatterns = new[] { "line" };
         [SerializeField] private int drawSpeed = 8;
         [SerializeField] private bool autoDrawCards = true;
 
@@ -27,6 +27,8 @@ namespace PartyLoteria.Game
         public List<Player> Players { get; private set; } = new List<Player>();
         public Winner GameWinner { get; private set; }
         public string Language => language;
+        public string[] WinPatterns => winPatterns;
+        public int DrawSpeed => drawSpeed;
 
         // Events for UI
         public event Action<GamePhase> OnPhaseChanged;
@@ -235,13 +237,19 @@ namespace PartyLoteria.Game
             CardsDrawn = 0;
             CurrentCard = null;
 
+            // Store win patterns from server
+            if (data.winPatterns != null && data.winPatterns.Length > 0)
+            {
+                winPatterns = data.winPatterns;
+            }
+
             // Use drawSpeed from server (0 = manual draw)
             drawSpeed = data.drawSpeed;
             autoDrawCards = drawSpeed > 0;
             isDrawing = autoDrawCards;
             drawTimer = autoDrawCards ? drawSpeed : 0;
 
-            Debug.Log($"[GameManager] Game started - drawSpeed={drawSpeed}, autoDrawCards={autoDrawCards}");
+            Debug.Log($"[GameManager] Game started - patterns={string.Join(", ", winPatterns)}, drawSpeed={drawSpeed}, autoDrawCards={autoDrawCards}");
 
             OnPhaseChanged?.Invoke(CurrentPhase);
         }
