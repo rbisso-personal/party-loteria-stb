@@ -411,7 +411,7 @@ namespace PartyLoteria.Network
 #endif
         }
 
-        public void StartGame(string winPattern = "line", int drawSpeed = 8)
+        public void StartGame(string[] winPatterns = null, int drawSpeed = 8)
         {
             if (!IsConnected)
             {
@@ -419,11 +419,12 @@ namespace PartyLoteria.Network
                 return;
             }
 
-            Debug.Log($"[Network] Starting game (pattern: {winPattern}, speed: {drawSpeed}s)");
+            winPatterns ??= new[] { "line" };
+            Debug.Log($"[Network] Starting game (patterns: {string.Join(", ", winPatterns)}, speed: {drawSpeed}s)");
 #if !UNITY_WEBGL || UNITY_EDITOR
-            socket.Emit("start-game", new { winPattern, drawSpeed });
+            socket.Emit("start-game", new { winPatterns, drawSpeed });
 #else
-            webglBridge.Emit("start-game", new { winPattern, drawSpeed });
+            webglBridge.Emit("start-game", new { winPatterns, drawSpeed });
 #endif
         }
 

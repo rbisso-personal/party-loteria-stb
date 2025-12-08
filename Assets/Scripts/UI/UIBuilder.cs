@@ -214,7 +214,7 @@ namespace PartyLoteria.UI
 
             // Title row
             var titleRow = CreateLayoutElement(mainLayout.transform, "TitleRow", preferredHeight: 100);
-            var title = CreateText(titleRow.transform, "Title", "LOTERÍA", FontSize(fontScaleGiant), FontStyles.Bold);
+            var title = CreateText(titleRow.transform, "Title", "PARTY LOTERÍA", FontSize(fontScaleGiant), FontStyles.Bold);
             title.color = primaryColor;
             StretchToParent(title.gameObject);
 

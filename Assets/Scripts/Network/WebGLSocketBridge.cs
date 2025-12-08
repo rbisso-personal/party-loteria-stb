@@ -307,7 +307,7 @@ namespace PartyLoteria.Network
                 Debug.LogWarning($"[WebGLSocket] Game error: {data.message}");
                 OnGameError?.Invoke(data.message);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // If it's just a plain string
                 Debug.LogWarning($"[WebGLSocket] Game error: {jsonData}");

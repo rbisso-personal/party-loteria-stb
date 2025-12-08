@@ -150,8 +150,8 @@ namespace PartyLoteria.Game
                 return;
             }
 
-            Debug.Log($"[GameManager] Starting game with pattern={winPattern}, speed={drawSpeed}");
-            NetworkManager.Instance?.StartGame(winPattern, drawSpeed);
+            Debug.Log($"[GameManager] Starting game with patterns={string.Join(", ", winPatterns)}, speed={drawSpeed}");
+            NetworkManager.Instance?.StartGame(winPatterns, drawSpeed);
         }
 
         public void DrawNextCard()
@@ -174,9 +174,9 @@ namespace PartyLoteria.Game
             NetworkManager.Instance?.ResetGame();
         }
 
-        public void SetWinPattern(string pattern)
+        public void SetWinPatterns(string[] patterns)
         {
-            winPattern = pattern;
+            winPatterns = patterns;
         }
 
         public void SetDrawSpeed(int seconds)

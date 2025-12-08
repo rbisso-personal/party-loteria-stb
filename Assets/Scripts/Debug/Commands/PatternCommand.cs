@@ -52,7 +52,7 @@ namespace PartyLoteria.DevConsole.Commands
                 return;
             }
 
-            game.SetWinPattern(pattern);
+            game.SetWinPatterns(new[] { pattern });
             console.Print($"Win pattern set to: {pattern}");
             console.PrintInfo("Pattern will apply to the next game");
         }
