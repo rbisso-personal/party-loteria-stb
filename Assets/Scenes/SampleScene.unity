@@ -455,9 +455,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59457e20119c6b04ebe7f9260726264d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PartyLoteria.Network.NetworkManager
-  serverUrl: https://party-loteria-ircg2u7krq-uc.a.run.app
+  environment: 0
   autoConnect: 1
-  useLocalServer: 0
   localServerPort: 3001
   localPlayerClientPort: 5173
 --- !u!1 &832575517

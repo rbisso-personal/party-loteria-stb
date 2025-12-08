@@ -52,6 +52,7 @@ namespace PartyLoteria.UI
         private Slider drawSpeedSlider;
         private TextMeshProUGUI drawSpeedValueText;
         private RawImage qrCodeImage;
+        private TextMeshProUGUI playerUrlText;
 
         private TextMeshProUGUI cardNameText;
         private TextMeshProUGUI cardVerseText;
@@ -78,6 +79,20 @@ namespace PartyLoteria.UI
         {
             BuildUI();
             SetupUIManager();
+        }
+
+        /// <summary>
+        /// Update the displayed player URL (called by NetworkManager based on environment)
+        /// </summary>
+        public void SetPlayerUrl(string url)
+        {
+            if (playerUrlText != null && !string.IsNullOrEmpty(url))
+            {
+                // Strip protocol for cleaner display
+                string displayUrl = url.Replace("https://", "").Replace("http://", "").TrimEnd('/');
+                playerUrlText.text = displayUrl;
+                Debug.Log($"[UIBuilder] Player URL updated to: {displayUrl}");
+            }
         }
 
         private void BuildUI()
@@ -263,10 +278,10 @@ namespace PartyLoteria.UI
             var joinLabelLE = joinLabel.gameObject.AddComponent<LayoutElement>();
             joinLabelLE.preferredHeight = 50;
 
-            var urlLabel = CreateText(roomInfoPanel.transform, "UrlLabel", "party-loteria-client.netlify.app", FontSize(fontScaleXLarge), FontStyles.Bold);
-            urlLabel.color = primaryColor;
-            urlLabel.alignment = TextAlignmentOptions.Left;
-            var urlLabelLE = urlLabel.gameObject.AddComponent<LayoutElement>();
+            playerUrlText = CreateText(roomInfoPanel.transform, "UrlLabel", "party-loteria-client.netlify.app", FontSize(fontScaleXLarge), FontStyles.Bold);
+            playerUrlText.color = primaryColor;
+            playerUrlText.alignment = TextAlignmentOptions.Left;
+            var urlLabelLE = playerUrlText.gameObject.AddComponent<LayoutElement>();
             urlLabelLE.preferredHeight = 60;
 
             // Spacer
